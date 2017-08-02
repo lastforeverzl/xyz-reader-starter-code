@@ -6,8 +6,12 @@ import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.AppBarLayout;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ShareCompat;
 import android.support.v7.graphics.Palette;
 import android.support.v7.widget.Toolbar;
@@ -17,6 +21,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.animation.AlphaAnimation;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -34,7 +39,6 @@ import java.util.GregorianCalendar;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import butterknife.OnClick;
 import butterknife.Unbinder;
 
 /**
@@ -52,6 +56,13 @@ public class ArticleDetailFragment extends Fragment implements
     private Cursor mCursor;
     private long mItemId;
     private View mRootView;
+
+    private int mTopInset;
+    private int mScrollY;
+    private int mMutedColor = 0xFF333333;
+    private boolean mIsCard = false;
+    private int mStatusBarFullOpacityBottom;
+    private ColorDrawable mStatusBarColorDrawable;
 
     private static final float PERCENTAGE_TO_SHOW_TITLE_AT_TOOLBAR = 0.9f;
     private static final float PERCENTAGE_TO_HIDE_TITLE_DETAILS = 0.3f;
@@ -107,6 +118,9 @@ public class ArticleDetailFragment extends Fragment implements
             mItemId = getArguments().getLong(ARG_ITEM_ID);
         }
 
+        mIsCard = getResources().getBoolean(R.bool.detail_is_card);
+        mStatusBarFullOpacityBottom = getResources().getDimensionPixelSize(
+                R.dimen.detail_card_top_margin);
         setHasOptionsMenu(true);
     }
 
@@ -135,6 +149,13 @@ public class ArticleDetailFragment extends Fragment implements
         getActivityCast().setSupportActionBar(mToolbar);
         getActivityCast().getSupportActionBar().setTitle("");
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mImageView.setTransitionName(
+                    getString(R.string.transition_name, mItemId));
+        }
+
+        mStatusBarColorDrawable = new ColorDrawable(0);
+
         mRootView.findViewById(R.id.share_fab).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -146,8 +167,38 @@ public class ArticleDetailFragment extends Fragment implements
         });
 
         bindViews();
+        updateStatusBar();
         startAlphaAnimation(mToolbar, 0, View.INVISIBLE);
         return mRootView;
+    }
+
+
+    private void updateStatusBar() {
+        int color = 0;
+        if (mImageView != null && mTopInset != 0 && mScrollY > 0) {
+            float f = progress(mScrollY,
+                    mStatusBarFullOpacityBottom - mTopInset * 3,
+                    mStatusBarFullOpacityBottom - mTopInset);
+            color = Color.argb((int) (255 * f),
+                    (int) (Color.red(mMutedColor) * 0.9),
+                    (int) (Color.green(mMutedColor) * 0.9),
+                    (int) (Color.blue(mMutedColor) * 0.9));
+        }
+        mStatusBarColorDrawable.setColor(color);
+    }
+
+    static float progress(float v, float min, float max) {
+        return constrain((v - min) / (max - min), 0, 1);
+    }
+
+    static float constrain(float val, float min, float max) {
+        if (val < min) {
+            return min;
+        } else if (val > max) {
+            return max;
+        } else {
+            return val;
+        }
     }
 
     private Date parsePublishedDate() {
@@ -169,6 +220,7 @@ public class ArticleDetailFragment extends Fragment implements
             mRootView.setAlpha(0);
             mRootView.setVisibility(View.VISIBLE);
             mRootView.animate().alpha(1);
+
             mTitle.setText(mCursor.getString(ArticleLoader.Query.TITLE));
             mContainerTitle.setText(mCursor.getString(ArticleLoader.Query.TITLE));
             Date publishedDate = parsePublishedDate();
@@ -198,11 +250,10 @@ public class ArticleDetailFragment extends Fragment implements
                             Bitmap bitmap = imageContainer.getBitmap();
                             if (bitmap != null) {
                                 Palette p = Palette.generate(bitmap, 12);
-//                                mMutedColor = p.getDarkMutedColor(0xFF333333);
+                                mMutedColor = p.getDarkMutedColor(0xFF333333);
                                 mImageView.setImageBitmap(imageContainer.getBitmap());
-//                                mRootView.findViewById(R.id.meta_bar)
-//                                        .setBackgroundColor(mMutedColor);
-//                                updateStatusBar();
+                                updateStatusBar();
+                                scheduleStartPostponedTransition();
                             }
                         }
 
@@ -255,11 +306,6 @@ public class ArticleDetailFragment extends Fragment implements
         handleToolbarTitleVisibility(percentage);
     }
 
-    @OnClick(R.id.up_button)
-    public void onUpClick() {
-        getActivityCast().onBackPressed();
-    }
-
     private void handleAlphaOnTitle(float percentage) {
         if (percentage >= PERCENTAGE_TO_HIDE_TITLE_DETAILS) {
             if (mIsTheTitleContainerVisible) {
@@ -301,5 +347,18 @@ public class ArticleDetailFragment extends Fragment implements
         alphaAnimation.setDuration(duration);
         alphaAnimation.setFillAfter(true);
         v.startAnimation(alphaAnimation);
+    }
+
+    private void scheduleStartPostponedTransition() {
+        mImageView.getViewTreeObserver().addOnPreDrawListener(
+                new ViewTreeObserver.OnPreDrawListener() {
+                    @Override
+                    public boolean onPreDraw() {
+                        mImageView.getViewTreeObserver().removeOnPreDrawListener(this);
+                        Log.d(TAG, mImageView.getTransitionName());
+                        ActivityCompat.startPostponedEnterTransition(getActivity());
+                        return true;
+                    }
+                });
     }
 }

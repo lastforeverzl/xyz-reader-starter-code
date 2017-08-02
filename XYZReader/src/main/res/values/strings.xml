@@ -12,4 +12,8 @@
     <string name="lorem">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer condimentum tortor sed dignissim feugiat. Praesent sem lorem, congue lacinia pulvinar a, dignissim ut massa. Praesent sollicitudin odio a mauris pretium faucibus. Aenean risus libero, faucibus ac quam eu, pulvinar condimentum lacus. Fusce ante ipsum, feugiat id turpis ac, vestibulum iaculis orci. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras at tincidunt nunc, at fermentum ex. Praesent fermentum tortor eros, eu cursus libero ultricies ut. Sed tincidunt turpis non metus molestie, eu feugiat elit malesuada. Ut dictum hendrerit sem, quis ullamcorper ante suscipit nec. Phasellus feugiat consequat felis sit amet semper. Interdum et malesuada fames ac ante ipsum primis in faucibus. Etiam a molestie dui. Mauris viverra interdum orci maximus sollicitudin. Nullam cursus accumsan tortor. In sed ante vitae turpis rhoncus dictum sed vel enim.</string>
     <string name="article_title">xyzreader</string>
     <string name="article_byline">Jan 1, 1908 by Jack London</string>
+
+    <string name="end_position_extra">end position</string>
+    <string name="start_position_extra">start position</string>
+    <string name="transition_name">transition name%d</string>
 </resources>
