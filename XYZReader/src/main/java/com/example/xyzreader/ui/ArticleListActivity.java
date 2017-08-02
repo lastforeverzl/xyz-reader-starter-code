@@ -130,6 +130,7 @@ public class ArticleListActivity extends AppCompatActivity implements
         StaggeredGridLayoutManager sglm =
                 new StaggeredGridLayoutManager(columnCount, StaggeredGridLayoutManager.VERTICAL);
         mRecyclerView.setLayoutManager(sglm);
+
     }
 
     @Override
@@ -147,27 +148,12 @@ public class ArticleListActivity extends AppCompatActivity implements
             clickedItemPos = data.getIntExtra(getString(R.string.start_position_extra), -1);
 
             ActivityCompat.postponeEnterTransition(this);
-
-            //Delays preDraw and scrollToPosition
-            //This is because during an orientation change in Detail Activity,
-            //the return transition fails to execute if the returning item is off-screen.
-            //Through tests/inspection, this is because the loader has not loaded the data in-time for the preDraw & scrollToPosition to occur
-            //Through tests/inspection, 100ms delay gives the most optimised result.
             new Handler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     if(endPosition != 1)
                         mRecyclerView.scrollToPosition(endPosition);
-                    mRecyclerView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
-                        @Override
-                        public boolean onPreDraw() {
-                            mRecyclerView.getViewTreeObserver().removeOnPreDrawListener(this);
-                            mRecyclerView.requestLayout();
-                            ActivityCompat.startPostponedEnterTransition(ArticleListActivity.this);
-                            return true;
-                        }
-                    });
-
+                    scheduleStartPostponedTransition();
                 }
             }, 100);
         }
@@ -281,24 +267,23 @@ public class ArticleListActivity extends AppCompatActivity implements
         }
     }
 
-    private class MyExitSharedElementCallback extends SharedElementCallback {
+    private void scheduleStartPostponedTransition() {
+        mRecyclerView.getViewTreeObserver().addOnPreDrawListener(
+                new ViewTreeObserver.OnPreDrawListener() {
+                    @Override
+                    public boolean onPreDraw() {
+                        mRecyclerView.getViewTreeObserver().removeOnPreDrawListener(this);
+                        mRecyclerView.requestLayout();
+                        ActivityCompat.startPostponedEnterTransition(ArticleListActivity.this);
+                        return true;
+                    }
+                });
+    }
 
-        /**After testing, this seems to get called whenever the transition is starting/returning.
-         //This also applies for setEnterSharedElementCallback in ArticleDetailActivity
-         //After researching the DOC, exitSharedElement is the element for the exit activity, in this case ArticleListActivity
-         //enterSharedElement is for the entering activity of the transition(ArticleDetailActivity)
-         //We need to modify the shared element because of cases when users swipe left or right.
-         //The fragment is no longer the same as the one we entered with and so we need to set the correct view to end the transition appropriately
-         **/
+    private class MyExitSharedElementCallback extends SharedElementCallback {
         @Override
         public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
-            //As mentioned, this callback gets triggered whenever the transition is starting/returning
-            //We only want to modify the element when it is returning AND the position has changed
             if(isReturn) {
-
-                //position determines which item in the list that we need to apply the return transition
-                //if user didn't swipe anywhere in the detail activity then keep it at the same clicked item position
-                //else, set it to the correct item that the user swiped to
                 int position = clickedItemPos;
                 Log.d(TAG, "endPosition: " + endPosition + " clickedItemPos: " + clickedItemPos);
                 if(endPosition != clickedItemPos && endPosition != -1) {
@@ -314,7 +299,6 @@ public class ArticleListActivity extends AppCompatActivity implements
                     sharedElements.clear();
                     sharedElements.put(transitionName, endThumbnailView);
                 }
-                //Set it back, otherwise we might modify it by accident when the user clicks another item
                 isReturn = false;
             }
         }

@@ -355,7 +355,6 @@ public class ArticleDetailFragment extends Fragment implements
                     @Override
                     public boolean onPreDraw() {
                         mImageView.getViewTreeObserver().removeOnPreDrawListener(this);
-                        Log.d(TAG, mImageView.getTransitionName());
                         ActivityCompat.startPostponedEnterTransition(getActivity());
                         return true;
                     }

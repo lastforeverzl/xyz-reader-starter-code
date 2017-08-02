@@ -175,8 +175,6 @@ public class ArticleDetailActivity extends AppCompatActivity
         @Override
         public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
             if(isReturn && currentFragment != null){
-                //if the user swipes the pager, we are no longer on the same starting fragment
-                //this means we are not on the same fragment positioned from the start, so we will need to fix up our shared element values
                 if(startPos != currentPos){
                     Log.d(TAG, "startPos: " + startPos);
                     Log.d(TAG, "currentPos: " + currentPos);
